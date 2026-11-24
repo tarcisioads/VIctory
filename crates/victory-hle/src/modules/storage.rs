@@ -178,6 +178,7 @@ mod tests {
     use crate::modules::xgameruntime::method;
 
     #[test]
+    #[cfg_attr(not(windows), ignore = "the title's file calls are Windows-only")]
     fn serves_a_drive_over_the_title_folder_and_its_quota() {
         type Size = extern "system" fn(This, *mut usize) -> HRESULT;
         type Get = extern "system" fn(This, usize, *mut u8, *mut usize) -> HRESULT;
@@ -205,14 +206,17 @@ mod tests {
         let drive = std::str::from_utf8(&buffer[..3]).unwrap();
         assert!(drive.ends_with(":\\"), "{drive}");
         // Title file calls on it reach the folder.
-        let path = format!("{drive}save.dat\0");
-        let mut attributes = [0u8; 36];
-        let get_attributes = super::super::files::GetFileAttributesExW;
-        let wide: Vec<u16> = path.encode_utf16().collect();
-        assert_ne!(
-            get_attributes(wide.as_ptr(), 0, attributes.as_mut_ptr().cast()),
-            0
-        );
+        #[cfg(windows)]
+        {
+            let path = format!("{drive}save.dat\0");
+            let mut attributes = [0u8; 36];
+            let get_attributes = super::super::files::GetFileAttributesExW;
+            let wide: Vec<u16> = path.encode_utf16().collect();
+            assert_ne!(
+                get_attributes(wide.as_ptr(), 0, attributes.as_mut_ptr().cast()),
+                0
+            );
+        }
 
         let mut info = SpaceInfo {
             available_free: 0,
