@@ -327,6 +327,7 @@ pub fn run(
 /// same code, so a run finds it translated or refused. With `pipelines`,
 /// then the shader pack's pipelines go into the pipeline library
 /// (`prebuild`).
+#[cfg(windows)]
 pub fn warm(paths: Vec<PathBuf>, jobs: Option<usize>, pipelines: bool) -> Result<()> {
     let paths = crate::default_paths(paths)?;
     let shaders = victory_core::Config::load()?.cache_subdir("shaders")?;
@@ -433,6 +434,11 @@ pub fn warm(paths: Vec<PathBuf>, jobs: Option<usize>, pipelines: bool) -> Result
         crate::prebuild::run(&paths, threads)?;
     }
     Ok(())
+}
+
+#[cfg(not(windows))]
+pub fn warm(_: Vec<PathBuf>, _: Option<usize>, _: bool) -> Result<()> {
+    anyhow::bail!("warming the shader cache requires Windows")
 }
 
 /// Shows on stderr how far `workers` are through `file`'s `jobs` (`next`

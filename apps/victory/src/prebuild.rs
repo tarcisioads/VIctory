@@ -12,30 +12,42 @@
 //! interrupted pre-build keeps its work, and the next one finds those
 //! pipelines there.
 
+#[cfg(windows)]
 use std::collections::{BTreeMap, HashMap};
 use std::path::PathBuf;
+#[cfg(windows)]
 use std::sync::Mutex;
+#[cfg(windows)]
 use std::sync::atomic::{AtomicUsize, Ordering};
+#[cfg(windows)]
 use std::time::Instant;
 
 use anyhow::Result;
+#[cfg(windows)]
 use victory_game::pipelines::{self, Named, Unnamed};
+#[cfg(windows)]
 use victory_game::{sgd5, shaderpack};
+#[cfg(windows)]
 use victory_gpu::pipeline::{self, Prebuild};
+#[cfg(windows)]
 use victory_shader::{Container, FourCC, HwStage, native_programs};
 
+#[cfg(windows)]
 use crate::shader::{MAX_FILE, Source, sources};
 
 /// Where a native program's container is: file, source, and its stage.
+#[cfg(windows)]
 type Found = (usize, usize, HwStage);
 
 /// One pipeline to make: a graphics or compute record of the pack.
+#[cfg(windows)]
 #[derive(Clone, Copy, Debug)]
 enum Job {
     Graphics(usize),
     Compute(usize),
 }
 
+#[cfg(windows)]
 pub fn run(paths: &[PathBuf], threads: usize) -> Result<()> {
     let started = Instant::now();
     pipeline::use_pipeline_cache(victory_core::Config::load()?.cache_subdir("pipelines")?);
@@ -260,7 +272,13 @@ pub fn run(paths: &[PathBuf], threads: usize) -> Result<()> {
     Ok(())
 }
 
+#[cfg(not(windows))]
+pub fn run(_: &[PathBuf], _: usize) -> Result<()> {
+    anyhow::bail!("pre-building pipelines requires Windows (host D3D12)")
+}
+
 /// Runs `f` on every job, on `threads` threads.
+#[cfg(windows)]
 fn each(jobs: &[Job], threads: usize, f: impl Fn(Job) + Sync) {
     let next = AtomicUsize::new(0);
     std::thread::scope(|s| {
@@ -275,6 +293,7 @@ fn each(jobs: &[Job], threads: usize, f: impl Fn(Job) + Sync) {
 }
 
 /// The hash instructions each native program of a container starts with.
+#[cfg(windows)]
 fn program_ids(bytes: &[u8]) -> Vec<([u8; 24], HwStage)> {
     let Ok(c) = Container::parse(bytes) else {
         return Vec::new();
@@ -291,6 +310,7 @@ fn program_ids(bytes: &[u8]) -> Vec<([u8; 24], HwStage)> {
         .unwrap_or_default()
 }
 
+#[cfg(windows)]
 fn lock<T>(m: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
     m.lock().unwrap_or_else(|e| e.into_inner())
 }
